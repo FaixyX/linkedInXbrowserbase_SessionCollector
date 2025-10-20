@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: linkedin-session-capture-api
+Version: 2.0.0
+Summary: A scalable API to capture LinkedIn session data using Browserbase and Redis.
+Author-email: Jules <jules@example.com>
+Requires-Python: >=3.8
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: redis
+Requires-Dist: browserbase
+Requires-Dist: python-dotenv
+Requires-Dist: pydantic
+Requires-Dist: pydantic-settings
+Requires-Dist: httpx
+Requires-Dist: tenacity
+Requires-Dist: playwright
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-mock; extra == "dev"

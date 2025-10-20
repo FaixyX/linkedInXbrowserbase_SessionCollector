@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+redis
+browserbase
+python-dotenv
+pydantic
+pydantic-settings
+httpx
+tenacity
+playwright
+
+[dev]
+pytest
+pytest-mock

@@ -1,0 +1,8 @@
+pyproject.toml
+linkedin_session_capture_api.egg-info/PKG-INFO
+linkedin_session_capture_api.egg-info/SOURCES.txt
+linkedin_session_capture_api.egg-info/dependency_links.txt
+linkedin_session_capture_api.egg-info/requires.txt
+linkedin_session_capture_api.egg-info/top_level.txt
+tests/test_linkedin_session.py
+tests/test_session_manager.py

@@ -6,6 +6,13 @@ from playwright.async_api import Page
 import httpx
 import redis
 
+from config import Settings
+from dependencies import get_settings, get_session_manager, create_session_manager_from_settings
+from session_manager import BaseSessionManager
+from session_processor import SessionProcessor, SessionNotFoundError, ServiceUnavailableError
+from linkedin_session import create_new_session, extract_session_data, send_to_bubble, check_browserbase_api
+from browserbase import BrowserbaseError
+
 # --- Central Logging Configuration ---
 logging.basicConfig(
     level=logging.INFO,
@@ -14,12 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from config import Settings
-from dependencies import get_settings, get_session_manager, create_session_manager_from_settings
-from session_manager import BaseSessionManager
-from session_processor import SessionProcessor, SessionNotFoundError, ServiceUnavailableError
-from linkedin_session import create_new_session, extract_session_data, send_to_bubble, check_browserbase_api
-from browserbase import BrowserbaseError
+
 
 # Define the Pydantic model for the request body
 class FinalizeRequest(BaseModel):
@@ -38,11 +40,16 @@ async def startup_event():
     logger.info("FastAPI server is starting up.")
     app.state.session_manager = create_session_manager_from_settings()
 
+@app.get("/")
+def read_root():
+    """A root endpoint to confirm the API is running."""
+    return {"status": "LinkedIn Session Capture API is running."}
+
 @app.post("/start-session")
 async def start_session_endpoint(
     settings: Settings = Depends(get_settings),
     session_manager: BaseSessionManager = Depends(get_session_manager)
-):
+ ):
     """
     Creates a new Browserbase session and stores its details.
     """
@@ -68,7 +75,7 @@ async def finalize_session_endpoint(
     request: FinalizeRequest,
     settings: Settings = Depends(get_settings),
     session_manager: BaseSessionManager = Depends(get_session_manager)
-):
+ ):
     """
     Uses the SessionProcessor context manager to finalize the session.
     """
@@ -96,21 +103,16 @@ async def finalize_session_endpoint(
         logger.error("Unexpected error during finalization for session %s.", request.session_id, exc_info=True)
         raise HTTPException(status_code=500, detail="An unexpected error occurred during finalization.")
 
-@app.get("/")
-def read_root():
-    """A root endpoint to confirm the API is running."""
-    return {"status": "LinkedIn Session Capture API is running."}
-
 @app.get("/health")
 async def health_check_endpoint(
     settings: Settings = Depends(get_settings),
     session_manager: BaseSessionManager = Depends(get_session_manager)
-):
+ ):
     """
     Checks the health of the application and its dependencies.
     """
     redis_healthy = session_manager.check_connection()
-    browserbase_healthy = await check_browserbase_api(settings)
+    browserbase_healthy = check_browserbase_api(settings)
 
     if redis_healthy and browserbase_healthy:
         return {"status": "ok", "dependencies": {"redis": "healthy", "browserbase": "healthy"}}

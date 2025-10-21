@@ -113,8 +113,18 @@ async def finalize_session_endpoint(
     """
     try:
         async with SessionProcessor(settings, session_manager, request.session_id) as page:
-            await page.goto("https://www.linkedin.com/feed/")
+            # Try to navigate to LinkedIn feed first (user should be logged in)
+            try:
+                await page.goto("https://www.linkedin.com/feed/", timeout=15000)
+                logger.info("Successfully navigated to LinkedIn feed - user is logged in")
+            except Exception as e:
+                logger.warning(f"Could not access LinkedIn feed: {e}")
+                # If user hasn't logged in, go to login page and capture whatever data is available
+                await page.goto("https://www.linkedin.com/login", timeout=15000)
+                logger.info("Navigated to LinkedIn login page - user may not be logged in yet")
+            
             captured_data = await extract_session_data(page)
+            print("captured_data", captured_data)
             await send_to_bubble(settings, captured_data)
 
             return {

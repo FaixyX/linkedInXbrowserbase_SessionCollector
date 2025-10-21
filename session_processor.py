@@ -1,7 +1,7 @@
 import logging
 from config import Settings
 from session_manager import BaseSessionManager
-from linkedin_session import get_session_connect_url, delete_browserbase_session
+from linkedin_session import get_session_connect_url
 from playwright.async_api import async_playwright, Browser, Page
 import redis
 
@@ -51,8 +51,9 @@ class SessionProcessor:
         """
         if self.browser:
             try:
-                await self.browser.close()
-                logger.info("Playwright browser connection closed for session: %s", self.session_details['browserbase_session_id'])
+                # await self.browser.close()
+                logger.info("I am here")
+                # logger.info("Playwright browser connection closed for session: %s", self.session_details['browserbase_session_id'])
             except Exception:
                 logger.error("Failed to close Playwright connection for session %s.", self.session_details.get('browserbase_session_id', 'N/A'), exc_info=True)
 
@@ -60,10 +61,8 @@ class SessionProcessor:
             await self.playwright.__aexit__(exc_type, exc_val, exc_tb)
 
         if self.session_details:
-            try:
-                await delete_browserbase_session(self.settings, self.session_details["browserbase_session_id"])
-            except Exception:
-                logger.error("Failed to delete Browserbase session %s during cleanup.", self.session_details.get('browserbase_session_id', 'N/A'), exc_info=True)
+            # Keep Browserbase session alive - it will terminate automatically when user logs in
+            logger.info("Keeping Browserbase session alive: %s (will terminate automatically on user login)", self.session_details.get('browserbase_session_id', 'N/A'))
 
 # --- Custom Exceptions for the Processor ---
 class SessionProcessorError(Exception):

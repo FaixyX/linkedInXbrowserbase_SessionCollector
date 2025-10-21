@@ -51,17 +51,49 @@ async def start_session_endpoint(
     session_manager: BaseSessionManager = Depends(get_session_manager)
  ):
     """
-    Creates a new Browserbase session and stores its details.
+    Creates a new Browserbase session, opens LinkedIn login page, and stores session details.
     """
     try:
+        # Step 1: Create new session
+        logger.info("Creating new Browserbase session...")
         session_details = await create_new_session(settings)
         internal_session_id = str(uuid.uuid4())
         session_manager.store_session(internal_session_id, session_details)
-        print(f"Storing session: {internal_session_id}")
+        logger.info(f"Stored session: {internal_session_id}")
+        
+        # Step 2: Open LinkedIn login page immediately (without SessionProcessor to keep session alive)
+        logger.info("Opening LinkedIn login page...")
+        try:
+            # Get connection URL for the session
+            from linkedin_session import get_session_connect_url
+            connect_url = await get_session_connect_url(settings, session_details["browserbase_session_id"])
+            
+            # Connect to browser directly without context manager to keep connection alive
+            from playwright.async_api import async_playwright
+            playwright = await async_playwright().start()
+            browser = await playwright.chromium.connect_over_cdp(connect_url)
+            
+            # Get existing pages instead of creating new one
+            pages = browser.contexts[0].pages if browser.contexts else []
+            if pages:
+                # Use existing page
+                page = pages[0]
+            else:
+                # Create new page if none exists
+                page = await browser.new_page()
+            
+            await page.goto("https://www.linkedin.com/login")
+            logger.info("LinkedIn login page opened successfully - connection kept alive")
+            # Don't close browser or playwright - keep session alive
+        except Exception as e:
+            logger.warning(f"Could not open LinkedIn page directly: {e}")
+            logger.info("Session created - user can open debugger URL to access LinkedIn")
+        
         return {
-            "message": "Session created. Please use the debugger URL to log in.",
+            "message": "Session created and LinkedIn login page opened. Please use the debugger URL to log in.",
             "session_id": internal_session_id,
-            "debugger_url": session_details["debugger_url"]
+            "debugger_url": session_details["debugger_url"],
+            "status": "ready_for_login"
         }
     except (BrowserbaseError, redis.exceptions.RedisError):
         logger.error("Service error during session start.", exc_info=True)

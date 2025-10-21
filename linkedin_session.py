@@ -49,7 +49,8 @@ async def create_new_session(settings: Settings) -> Dict[str, Any]:
 
         session = browserbase.sessions.create(
             project_id=settings.BROWSERBASE_PROJECT_ID,
-            browser_settings=browser_settings
+            browser_settings=browser_settings,
+            proxies=True
         )
 
         logger.info("New Browserbase session created with ID: %s", session.id)
@@ -111,19 +112,10 @@ async def check_browserbase_api(settings: Settings) -> bool:
 
 async def delete_browserbase_session(settings: Settings, browserbase_session_id: str):
     """
-    Explicitly deletes a session on Browserbase to ensure no orphaned resources.
+    Keep the Browserbase session alive - it will terminate itself when user logs in.
+    This function is kept for compatibility but does nothing.
     """
-    try:
-        browserbase = Browserbase(api_key=settings.BROWSERBASE_API_KEY)
-        await browserbase.sessions.close(browserbase_session_id)
-        logger.info("Successfully deleted Browserbase session: %s", browserbase_session_id)
-    except BrowserbaseError as e:
-        # Log the error but don't re-raise, as this is a cleanup operation.
-        logger.error(
-            "Failed to delete Browserbase session %s during cleanup.",
-            browserbase_session_id,
-            exc_info=True
-        )
+    logger.info("Keeping Browserbase session alive: %s (will terminate automatically on user login)", browserbase_session_id)
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 

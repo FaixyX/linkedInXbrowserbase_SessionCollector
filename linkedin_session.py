@@ -80,10 +80,11 @@ async def extract_session_data(page: Page) -> Dict[str, Any]:
     """
     Extracts the 'li_at' cookie and user agent from the given page.
     """
-    cookies = page.context.cookies()
+    cookies = await page.context.cookies()
     li_at_cookie = next((c for c in cookies if c['name'] == 'li_at'), None)
 
     if not li_at_cookie:
+        logger.warning("Cookies retrieved: %s", [c["name"] for c in cookies])
         raise ValueError("Could not find 'li_at' cookie. Login may have failed or timed out.")
 
     user_agent = await page.evaluate("() => navigator.userAgent")
@@ -114,7 +115,7 @@ async def delete_browserbase_session(settings: Settings, browserbase_session_id:
     """
     try:
         browserbase = Browserbase(api_key=settings.BROWSERBASE_API_KEY)
-        await browserbase.sessions.delete_session(browserbase_session_id)
+        await browserbase.sessions.close(browserbase_session_id)
         logger.info("Successfully deleted Browserbase session: %s", browserbase_session_id)
     except BrowserbaseError as e:
         # Log the error but don't re-raise, as this is a cleanup operation.
